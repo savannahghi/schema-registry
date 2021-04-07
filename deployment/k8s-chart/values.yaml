@@ -32,8 +32,6 @@ mysql:
         image: "mysql:latest"
         port: 3306
     service:
-        name: mysql-service
-
         type: ClusterIP
         port: 3306
     volume:
@@ -41,7 +39,6 @@ mysql:
         kind: PersistentVolumeClaim
         mountPath: /var/lib/mysql
         pvc:
-            name: mysql-volumeclaim
             accessMode: ReadWriteOnce
             storage: 10Gi
     config:
