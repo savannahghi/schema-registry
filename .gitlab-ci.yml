@@ -1,0 +1,53 @@
+image: eu.gcr.io/savannah-emr/golang-ci-image:0.0.4
+
+services:
+  - name: docker:dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  GOOGLE_APPLICATION_CREDENTIALS: $CI_PROJECT_DIR/bewell-app-ci.json
+  DOCKER_IMAGE_TAG: "eu.gcr.io/bewell-app/schema-registry:${CI_COMMIT_REF_SLUG}"
+  GKE_ZONE: europe-west2-b
+  GKE_PROJECT: bewell-app
+
+build:
+  image: "eu.gcr.io/savannah-emr/gcloud-docker-in-docker:0.0.1"
+  stage: build
+  before_script:
+    - /google-cloud-sdk/bin/gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
+    - /google-cloud-sdk/bin/gcloud config set project bewell-app
+    - docker login -u _json_key --password-stdin https://eu.gcr.io < $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
+    - export CLOUDSDK_CORE_PROJECT=bewell-app
+    - /google-cloud-sdk/bin/gcloud auth configure-docker
+  script:
+    - docker build --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -f $CI_PROJECT_DIR/Dockerfile . -t ${DOCKER_IMAGE_TAG}
+    - docker -- push ${DOCKER_IMAGE_TAG}
+  tags:
+    - healthcloud-multi
+
+deploy_to_uat:
+  stage: deploy
+  image: devth/helm
+  before_script:
+    - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
+    - gcloud config set project ${GKE_PROJECT}
+    - gcloud config set compute/zone ${GKE_ZONE}
+    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+  script:
+    - helm upgrade
+      --install
+      --set app.name="app"
+      --set app.image="${DOCKER_IMAGE_TAG}"
+      --set app.host="http://schemaregistry.bewell.co.ke/"
+      --wait
+      app-release
+      ./deployment/k8s-chart
+  tags:
+    - healthcloud-multi

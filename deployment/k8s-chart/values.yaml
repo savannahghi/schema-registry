@@ -1,0 +1,61 @@
+app:
+    name: app-backend
+    namespace: default
+    group: backend
+    container:
+        port: 3000
+        env:
+            node_env: production
+            port: 3000
+            db_schema: gql-schema-registry-db
+            db_host: mysql-service
+            assets_url: http://schemaregistry.bewell.co.ke/
+    service:
+        name: app-service
+        namespace: default
+        type: NodePort
+        port: 3000
+        static_ip_name: helloweb-ip
+
+ingress:
+    name: fanout-ingress
+    replicaCount: 1
+    annotations:
+        class: gce
+    hosts:
+        - schemaregistry.bewell.co.ke
+        - demo.schemaregistry.bewell.co.ke
+        - test.schemaregistry.bewell.co.ke
+    paths:
+        - /*
+        - /assets/management-ui-standalone.css
+        - /assets/management-ui-standalone.js
+
+mysql:
+    name: mysql
+    replicaCount: 1
+    group: db
+    container:
+        image: "mysql:latest"
+        port: 3306
+    service:
+        name: mysql-service
+        type: ClusterIP
+        port: 3306
+    volume:
+        name: mysql-volume-mount
+        kind: PersistentVolumeClaim
+        mountPath: /var/lib/mysql
+        pvc:
+            name: mysql-volumeclaim
+            accessMode: ReadWriteOnce
+            storage: 50Gi
+    config:
+        name: mysql-config
+        data:
+            - key: MYSQL_DATABASE
+              value: schema_registry
+            - key: SERVICE_3306_NAME
+              value: mysql-service
+
+mysqlRootPassword: cm9vdA==
