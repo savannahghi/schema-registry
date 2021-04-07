@@ -12,6 +12,7 @@ module.exports = {
 		'/dist/',
 		'/coverage/',
 		'/client/',
+		'/deployment/',
 	],
 	testMatch: [
 		'<rootDir>/test/unit/**/*.test.js',

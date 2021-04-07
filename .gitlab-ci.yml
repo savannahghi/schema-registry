@@ -20,6 +20,8 @@ variables:
 build:
   image: "eu.gcr.io/savannah-emr/gcloud-docker-in-docker:0.0.1"
   stage: build
+  # only:
+  #   - develop
   before_script:
     - /google-cloud-sdk/bin/gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - /google-cloud-sdk/bin/gcloud config set project bewell-app
@@ -32,9 +34,11 @@ build:
   tags:
     - healthcloud-multi
 
-deploy_to_uat:
-  stage: deploy
+deploy_to_demo:
   image: devth/helm
+  stage: deploy
+  # only:
+  #   - develop
   before_script:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
@@ -43,11 +47,59 @@ deploy_to_uat:
   script:
     - helm upgrade
       --install
-      --set app.name="app"
+      --namespace="demo-namespace"
+      --set app.name="app-demo"
+      --set app.namespace="demo-namespace"
+      --set app.replicaCount=1
+      --set app.container.env.assets_url="http://demo.schemaregistry.bewell.co.ke/"
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.host="http://schemaregistry.bewell.co.ke/"
+      --set app.service.name="demo-service"
+      --set app.service.static_ip_name="uat-static-ip"
+      --set app.service.namespace="demo-namespace"
+      --set ingress.name="demo-ingress"
+      --set ingress.namespace="demo-namespace"
+      --set mysql.namespace="demo-namespace"
+      --set mysql.service.namespace="demo-namespace"
+      --set mysql.config.namespace="demo-namespace"
+      --set mysql.volume.pvc.namespace="demo-namespace"
       --wait
-      app-release
+      demo-app-release
+      ./deployment/k8s-chart
+  tags:
+    - healthcloud-multi
+
+deploy_to_test:
+  image: devth/helm
+  stage: deploy
+  # only:
+  #   - develop
+  before_script:
+    - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
+    - gcloud config set project ${GKE_PROJECT}
+    - gcloud config set compute/zone ${GKE_ZONE}
+    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+  script:
+    - helm upgrade
+      --install
+      --namespace="test-namespace"
+      --set app.name="app-test"
+      --set app.namespace="test-namespace"
+      --set app.replicaCount=1
+      --set app.container.env.assets_url="http://test.schemaregistry.bewell.co.ke/"
+      --set app.image="${DOCKER_IMAGE_TAG}"
+      --set app.host="http://test.schemaregistry.bewell.co.ke/"
+      --set app.service.name="test-service"
+      --set app.service.static_ip_name="uat-static-ip"
+      --set app.service.namespace="test-namespace"
+      --set ingress.name="test-ingress"
+      --set ingress.namespace="test-namespace"
+      --set mysql.namespace="test-namespace"
+      --set mysql.service.namespace="test-namespace"
+      --set mysql.config.namespace="test-namespace"
+      --set mysql.volume.pvc.namespace="test-namespace"
+      --wait
+      test-app-release
       ./deployment/k8s-chart
   tags:
     - healthcloud-multi

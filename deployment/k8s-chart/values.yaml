@@ -1,6 +1,4 @@
 app:
-    name: app-backend
-    namespace: default
     group: backend
     container:
         port: 3000
@@ -9,17 +7,12 @@ app:
             port: 3000
             db_schema: gql-schema-registry-db
             db_host: mysql-service
-            assets_url: http://schemaregistry.bewell.co.ke/
+
     service:
-        name: app-service
-        namespace: default
         type: NodePort
         port: 3000
-        static_ip_name: helloweb-ip
 
 ingress:
-    name: fanout-ingress
-    replicaCount: 1
     annotations:
         class: gce
     hosts:
@@ -40,6 +33,7 @@ mysql:
         port: 3306
     service:
         name: mysql-service
+
         type: ClusterIP
         port: 3306
     volume:
@@ -49,9 +43,10 @@ mysql:
         pvc:
             name: mysql-volumeclaim
             accessMode: ReadWriteOnce
-            storage: 50Gi
+            storage: 10Gi
     config:
         name: mysql-config
+
         data:
             - key: MYSQL_DATABASE
               value: schema_registry
