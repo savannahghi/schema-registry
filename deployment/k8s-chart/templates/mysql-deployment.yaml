@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ .Values.mysql.name }}
+    namespace: {{ .Values.mysql.namespace }}
     labels:
         app: {{ .Values.mysql.name }}
         group: {{ .Values.mysql.group }}

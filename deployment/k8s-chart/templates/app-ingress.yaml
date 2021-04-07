@@ -5,6 +5,7 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: {{ .Values.ingress.name }}
+  namespace: {{ .Values.ingress.namespace }}
   annotations:
         kubernetes.io/ingress.global-static-ip-name: {{ .Values.app.service.static_ip_name }}
 spec:
