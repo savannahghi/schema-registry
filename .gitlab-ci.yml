@@ -20,8 +20,8 @@ variables:
 build:
   image: "eu.gcr.io/savannah-emr/gcloud-docker-in-docker:0.0.1"
   stage: build
-  # only:
-  #   - develop
+  only:
+    - develop
   before_script:
     - /google-cloud-sdk/bin/gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - /google-cloud-sdk/bin/gcloud config set project bewell-app
@@ -37,8 +37,8 @@ build:
 deploy_to_demo:
   image: devth/helm
   stage: deploy
-  # only:
-  #   - develop
+  only:
+    - develop
   before_script:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
@@ -55,10 +55,13 @@ deploy_to_demo:
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.host="http://schemaregistry.bewell.co.ke/"
       --set app.service.name="demo-service"
-      --set app.service.static_ip_name="uat-static-ip"
+      --set app.service.static_ip_name="demo-static-ip"
       --set app.service.namespace="demo-namespace"
       --set ingress.name="demo-ingress"
       --set ingress.namespace="demo-namespace"
+      --set mysql.name="demo-mysql"
+      --set mysql.service.name="demo-mysql-service"
+      --set mysql.volume.pvc.name="demo-mysql-volume-claim"
       --set mysql.namespace="demo-namespace"
       --set mysql.service.namespace="demo-namespace"
       --set mysql.config.namespace="demo-namespace"
@@ -72,8 +75,8 @@ deploy_to_demo:
 deploy_to_test:
   image: devth/helm
   stage: deploy
-  # only:
-  #   - develop
+  only:
+    - develop
   before_script:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
@@ -90,10 +93,13 @@ deploy_to_test:
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.host="http://test.schemaregistry.bewell.co.ke/"
       --set app.service.name="test-service"
-      --set app.service.static_ip_name="uat-static-ip"
+      --set app.service.static_ip_name="test-static-ip"
       --set app.service.namespace="test-namespace"
       --set ingress.name="test-ingress"
       --set ingress.namespace="test-namespace"
+      --set mysql.name="test-mysql"
+      --set mysql.service.name="test-mysql-service"
+      --set mysql.volume.pvc.name="test-mysql-volume-claim"
       --set mysql.namespace="test-namespace"
       --set mysql.service.namespace="test-namespace"
       --set mysql.config.namespace="test-namespace"
