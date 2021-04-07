@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app: {{ .Values.app.name }}
+    group: {{ .Values.app.group }}
+spec:
+  replicas: {{ .Values.app.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        group: {{ .Values.app.group }}
+    spec:
+      containers:
+        - name: {{ .Values.app.name }}
+          image: {{ .Values.app.image }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.app.container.port }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.app.container.env.node_env | quote }}
+            - name: PORT
+              value: {{ .Values.app.container.env.port | quote }}
+            - name: DB_SCHEMA_REGISTRY
+              value: {{ .Values.app.container.env.db_schema | quote }}
+            - name: DB_HOST
+              value: {{ .Values.app.container.env.db_host | quote }}
+            - name: ASSETS_URL
+              value: {{ .Values.app.container.env.assets_url | quote }}
