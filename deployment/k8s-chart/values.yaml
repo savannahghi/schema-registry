@@ -6,7 +6,6 @@ app:
             node_env: production
             port: 3000
             db_schema: gql-schema-registry-db
-            db_host: mysql-service
 
     service:
         type: NodePort
@@ -15,10 +14,6 @@ app:
 ingress:
     annotations:
         class: gce
-    hosts:
-        - schemaregistry.bewell.co.ke
-        - demo.schemaregistry.bewell.co.ke
-        - test.schemaregistry.bewell.co.ke
     paths:
         - /*
         - /assets/management-ui-standalone.css
@@ -51,3 +46,14 @@ mysql:
               value: mysql-service
 
 mysqlRootPassword: cm9vdA==
+
+redis:
+    container:
+        image: "redis:6-alpine"
+        port: 6379
+        targetPort: 16379
+    volume:
+        name: conf
+        pvc:
+            defaultMode: 0755
+            storage: 1Gi

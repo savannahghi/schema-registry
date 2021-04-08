@@ -26,12 +26,184 @@ Assuming you have nvm & docker installed:
  
  Open http://localhost:6001
 
+## Use cases
 
-## Config
+### Validating schema on deploy
+
+On pre-commit / deploy make a POST /schema/validate to see if its compatible with current schema.
+
+### Schema registration
+
+On service start-up (runtime), make POST to /schema/push to register schema (see API reference for details).
+Make sure to handle failure.
+
+## Architecture
+
+### Tech stack
+
+|Frontend (`/client` folder)| Backend (`/app` folder)
+|------|------|
+|react|nodejs 14|
+|apollo client|express, hapi/joi|
+|styled-components|apollo-server-express, dataloader|
+||redis 6|
+||knex|
+||mysql 8|
+
+### DB structure
+
+Migrations are done using knex
+![](https://app.lucidchart.com/publicSegments/view/74fc86d4-671e-4644-a198-41d7ff681cae/image.png)
 
 
-## Usacases
+### DB migrations
 
+To create new DB migration, use:
+
+```bash
+npm run new-db-migration
+```
+
+If not using the default configuration of executing DB migrations on service startup, you can run the following `npm`
+command prior to starting the registry:
+
+```bash
+npm run migrate-db
+```
+
+The command can be prefixed with any environment variable necessary to configure DB connection (in case you ALTER DB with another user), such as:
+
+```bash
+DB_HOST=my-db-host DB_PORT=6000 npm run migrate-db
+```
+
+## Rest API documentation
+
+### GET /schema/latest
+
+Simplified version of /schema/compose where latest versions from different services is composed. Needed mostly for debugging
+
+### POST /schema/compose
+
+Lists schema based on passed services & their versions.
+Used by graphql gateway to fetch schema based on current containers
+
+#### Request params (optional, raw body)
+```json
+{
+  "services": [
+    {"name": "service_a", "version": "ke9j34fuuei"},
+    {"name": "service_b", "version": "e302fj38fj3"},
+  ]
+}
+```
+
+#### Response example
+- ✅ 200
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": 2,
+            "service_id": 3,
+            "version": "ke9j34fuuei",
+            "name": "service_a",
+            "url": "http://example.com/graphql",
+            "added_time": "2020-12-11T11:59:40.000Z",
+            "type_defs": "\n\ttype Query {\n\t\thello: String\n\t}\n",
+            "is_active": 1
+        },
+        {
+            "id": 3,
+            "service_id": 4,
+            "version": "v1",
+            "name": "service_b",
+            "url": "http://example.com/graphql",
+            "added_time": "2020-12-14T18:51:04.000Z",
+            "type_defs": "type Query {\n  world: String\n}\n",
+            "is_active": 1
+        }
+    ]
+}
+```
+- ❌ 400 "services[0].version" must be a string
+- ❌ 500 Internal error (DB is down)
+
+#### Request params
+
+- services{ name, version}
+
+If `services` is not passed, schema-registry tries to find most recent versions. Logic behind the scenes is that schema with _highest_ `added_time` OR `updated_time` is picked as latest. If time is the same, `schema.id` is used.
+
+### POST /schema/push
+
+Validates and registers new schema for a service.
+
+#### Request params (optional, raw body)
+
+```json
+{
+  "name": "service_a",
+  "version": "ke9j34fuuei",
+  "url":: "http://example.com/graphql",
+  "type_defs": "\n\ttype Query {\n\t\thello: String\n\t}\n"
+}
+```
+
+#### POST /schema/validate
+
+Validates schema, without adding to DB
+
+##### Request params (raw body)
+
+- name
+- version
+- url
+- type_defs
+
+#### POST /schema/diff
+
+Compares schemas and finds breaking or dangerous changes between provided and latest schemas.
+
+- name
+- version
+- url
+- type_defs
+
+#### DELETE /schema/delete/:schemaId
+
+Deletes specified schema
+
+##### Request params
+
+| Property                  | Type    | Comments                            |
+| ------------------------- | ------- | ----------------------------------- |
+| `schemaId`                | number  | ID of sechema                       |
+
+
+#### GET /persisted_query
+
+Looks up persisted query from DB & caches it in redis if its found
+
+##### Request params (query)
+
+
+| Property                  | Type    | Comments                            |
+| ------------------------- | ------- | ----------------------------------- |
+| `key`                | string  | hash of APQ (with `apq:` prefix)                       |
+
+#### POST /persisted_query
+
+Adds persisted query to DB & redis cache
+
+##### Request params (raw body)
+
+
+| Property                  | Type    | Comments                            |
+| ------------------------- | ------- | ----------------------------------- |
+| `key`                | string  | hash of APQ (with `apq:` prefix)                       |
+| `value`                | string  | Graphql query                       |
 ## Deployment
 
 The registry has been deployed to 2 kubernetes clusters with separation of:

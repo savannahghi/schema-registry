@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: {{ .Values.redis.name }}
+    namespace: {{ .Values.redis.namespace }}
+data:
+    update-node.sh: |
+        #!/bin/sh
+        REDIS_NODES="/data/nodes.conf"
+        sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+        exec "$@"
+    redis.conf: |+
+        cluster-enabled yes
+        cluster-require-full-coverage no
+        cluster-node-timeout 15000
+        cluster-config-file /data/nodes.conf
+        cluster-migration-barrier 1
+        appendonly yes
+        protected-mode no
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.redis.name }}
+  namespace: {{ .Values.redis.namespace }}
+spec:
+  serviceName: {{ .Values.redis.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.redis.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.redis.name }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.container.image }}
+          ports:
+            - containerPort: {{ .Values.redis.container.port }}
+              name: client
+            - containerPort: {{ .Values.redis.container.targetPort }}
+              name: gossip
+          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+              readOnly: false
+            - name: data
+              mountPath: /data
+              readOnly: false
+      volumes:
+        - name: {{ .Values.redis.volume.name }}
+          configMap:
+            name: {{ .Values.redis.name }}
+            defaultMode: {{ .Values.mysql.volume.pvc.defaultMode }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.redis.volume.pvc.storage }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redis.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.redis.container.port }}
+      targetPort: {{ .Values.redis.container.port }}
+      name: client
+    - port: {{ .Values.redis.container.targetPort }}
+      targetPort: {{ .Values.redis.container.targetPort }}
+      name: gossip
+  selector:
+    app: {{ .Values.redis.name }}
