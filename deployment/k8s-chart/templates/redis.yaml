@@ -46,8 +46,6 @@ spec:
               name: gossip
           command:
             [
-              "chmod",
-              "755",
               "/conf/update-node.sh",
               "redis-server",
               "/conf/redis.conf",
@@ -68,7 +66,7 @@ spec:
         - name: {{ .Values.redis.volume.name }}
           configMap:
             name: {{ .Values.redis.name }}
-            defaultMode: {{ .Values.mysql.volume.pvc.defaultMode }}
+            defaultMode: {{ .Values.redis.volume.pvc.defaultMode }}
   volumeClaimTemplates:
     - metadata:
         name: data
