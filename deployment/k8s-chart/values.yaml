@@ -49,7 +49,7 @@ mysqlRootPassword: cm9vdA==
 
 redis:
     container:
-        image: "redis:5.0.1-alpine"
+        image: "redis:6-alpine"
         port: 6379
         targetPort: 16379
     volume:
