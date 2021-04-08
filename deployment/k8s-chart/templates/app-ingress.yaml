@@ -10,8 +10,7 @@ metadata:
         kubernetes.io/ingress.global-static-ip-name: {{ .Values.app.service.static_ip_name }}
 spec:
   rules:
-  {{- range $host := .Values.ingress.hosts }}
-    - host: {{ $host }}
+    - host: {{ .Values.ingress.host }}
       http:
         paths:
         {{- range $p := $paths }}
@@ -20,4 +19,4 @@ spec:
               serviceName: {{ $serviceName }}
               servicePort: {{ $servicePort }}
         {{- end }}
-  {{- end }}
+

@@ -53,12 +53,13 @@ deploy_to_demo:
       --set app.replicaCount=1
       --set app.container.env.assets_url="http://demo.schemaregistry.bewell.co.ke/"
       --set app.image="${DOCKER_IMAGE_TAG}"
-      --set app.host="http://schemaregistry.bewell.co.ke/"
+      --set app.container.env.db_host="demo-mysql-service"
       --set app.service.name="demo-service"
       --set app.service.static_ip_name="demo-static-ip"
       --set app.service.namespace="demo-namespace"
       --set ingress.name="demo-ingress"
       --set ingress.namespace="demo-namespace"
+      --set ingress.host="http://demo.schemaregistry.bewell.co.ke/"
       --set mysql.name="demo-mysql"
       --set mysql.service.name="demo-mysql-service"
       --set mysql.volume.pvc.name="demo-mysql-volume-claim"
@@ -66,6 +67,8 @@ deploy_to_demo:
       --set mysql.service.namespace="demo-namespace"
       --set mysql.config.namespace="demo-namespace"
       --set mysql.volume.pvc.namespace="demo-namespace"
+      --set redis.name="demo-redis-cluster"
+      --set redis.namespace="demo-redis-namespace"
       --wait
       demo-app-release
       ./deployment/k8s-chart
@@ -91,12 +94,13 @@ deploy_to_test:
       --set app.replicaCount=1
       --set app.container.env.assets_url="http://test.schemaregistry.bewell.co.ke/"
       --set app.image="${DOCKER_IMAGE_TAG}"
-      --set app.host="http://test.schemaregistry.bewell.co.ke/"
+      --set app.container.env.db_host="test-mysql-service"
       --set app.service.name="test-service"
       --set app.service.static_ip_name="test-static-ip"
       --set app.service.namespace="test-namespace"
       --set ingress.name="test-ingress"
       --set ingress.namespace="test-namespace"
+      --set ingress.host="http://test.schemaregistry.bewell.co.ke/"
       --set mysql.name="test-mysql"
       --set mysql.service.name="test-mysql-service"
       --set mysql.volume.pvc.name="test-mysql-volume-claim"
@@ -104,6 +108,47 @@ deploy_to_test:
       --set mysql.service.namespace="test-namespace"
       --set mysql.config.namespace="test-namespace"
       --set mysql.volume.pvc.namespace="test-namespace"
+      --set redis.name="test-redis-cluster"
+      --set redis.namespace="test-redis-namespace"
+      --wait
+      test-app-release
+      ./deployment/k8s-chart
+  tags:
+    - healthcloud-multi
+
+deploy_to_prod:
+  image: devth/helm
+  stage: deploy
+  only:
+    - master
+  before_script:
+    - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
+    - gcloud config set project ${GKE_PROJECT}
+    - gcloud config set compute/zone ${GKE_ZONE}
+    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+  script:
+    - helm upgrade
+      --install
+      --namespace="prod-namespace"
+      --set app.name="app-prod"
+      --set app.namespace="prod-namespace"
+      --set app.replicaCount=1
+      --set app.container.env.assets_url="http://schemaregistry.bewell.co.ke/"
+      --set app.image="${DOCKER_IMAGE_TAG}"
+      --set app.container.env.db_host="prod-mysql-service"
+      --set app.service.name="prod-service"
+      --set app.service.static_ip_name="prod-static-ip"
+      --set app.service.namespace="prod-namespace"
+      --set ingress.name="prod-ingress"
+      --set ingress.namespace="prod-namespace"
+      --set ingress.host="http://schemaregistry.bewell.co.ke/"
+      --set mysql.name="prod-mysql"
+      --set mysql.service.name="prod-mysql-service"
+      --set mysql.volume.pvc.name="prod-mysql-volume-claim"
+      --set mysql.namespace="prod-namespace"
+      --set mysql.service.namespace="prod-namespace"
+      --set mysql.config.namespace="prod-namespace"
+      --set mysql.volume.pvc.namespace="prod-namespace"
       --wait
       test-app-release
       ./deployment/k8s-chart
