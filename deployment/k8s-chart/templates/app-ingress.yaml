@@ -8,6 +8,9 @@ metadata:
   namespace: {{ .Values.ingress.namespace }}
   annotations:
         kubernetes.io/ingress.global-static-ip-name: {{ .Values.app.service.static_ip_name }}
+        networking.gke.io/managed-certificates: {{ .Values.app.certificate.name }}
+        kubernetes.io/ingress.class: {{ .Values.ingress.annotations.class | quote }}
+        kubernetes.io/ingress.allow-http: {{ .Values.ingress.allow_http | quote }}
 spec:
   rules:
     - host: {{ .Values.ingress.host }}
