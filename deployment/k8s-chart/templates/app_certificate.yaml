@@ -1,0 +1,13 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ .Values.app.certificate.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: {{ .Values.app.release_name }}
+    meta.helm.sh/release-namespace: {{ .Values.app.namespace }}
+spec:
+  domains:
+    - {{ .Values.ingress.host }}
