@@ -47,7 +47,7 @@ deploy_to_demo:
   script:
     - helm upgrade
       --install
-      --namespace="demo-namespace"
+      --namespace="schemaregistry-demo-namespace"
       --set app.release_name="schemaregistry-demo-release"
       --set app.name="schemaregistry-demo-app"
       --set app.namespace="schemaregistry-demo-namespace"
@@ -92,7 +92,7 @@ deploy_to_test:
   script:
     - helm upgrade
       --install
-      --namespace="test-namespace"
+      --namespace="schemaregistry-test-namespace"
       --set app.release_name="schemaregistry-test-release"
       --set app.name="schemaregistry-test-app"
       --set app.namespace="schemaregistry-test-namespace"
@@ -137,7 +137,7 @@ deploy_to_prod:
   script:
     - helm upgrade
       --install
-      --namespace="prod-namespace"
+      --namespace="schemaregistry-prod-namespace"
       --set app.release_name="schemaregistry-prod-release"
       --set app.name="schemaregistry-app-prod"
       --set app.namespace="schemaregistry-prod-namespace"
