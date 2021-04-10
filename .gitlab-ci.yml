@@ -14,7 +14,7 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   GOOGLE_APPLICATION_CREDENTIALS: $CI_PROJECT_DIR/bewell-app-ci.json
   DOCKER_IMAGE_TAG: "eu.gcr.io/bewell-app/schema-registry:${CI_COMMIT_REF_SLUG}"
-  GKE_ZONE: europe-west2-b
+  GKE_ZONE: europe-west1-b
   GKE_PROJECT: bewell-app
 
 build:
@@ -43,7 +43,7 @@ deploy_to_demo:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
     - gcloud config set compute/zone ${GKE_ZONE}
-    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+    - gcloud container clusters get-credentials schema-registry --zone ${GKE_ZONE} --project ${GKE_PROJECT}
   script:
     - helm upgrade
       --install
@@ -88,7 +88,7 @@ deploy_to_test:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
     - gcloud config set compute/zone ${GKE_ZONE}
-    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+    - gcloud container clusters get-credentials schema-registry --zone ${GKE_ZONE} --project ${GKE_PROJECT}
   script:
     - helm upgrade
       --install
@@ -133,7 +133,7 @@ deploy_to_prod:
     - gcloud auth activate-service-account --key-file $GCLOUD_PRODUCTION_SERVICE_ACCOUNT
     - gcloud config set project ${GKE_PROJECT}
     - gcloud config set compute/zone ${GKE_ZONE}
-    - gcloud container clusters get-credentials uat-node-environment --zone ${GKE_ZONE} --project ${GKE_PROJECT}
+    - gcloud container clusters get-credentials schema-registry --zone ${GKE_ZONE} --project ${GKE_PROJECT}
   script:
     - helm upgrade
       --install
