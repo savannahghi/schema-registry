@@ -14,7 +14,7 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   GOOGLE_APPLICATION_CREDENTIALS: $CI_PROJECT_DIR/bewell-app-ci.json
   DOCKER_IMAGE_TAG: "eu.gcr.io/bewell-app/schema-registry:${CI_COMMIT_REF_SLUG}"
-  GKE_ZONE: europe-west1-b
+  GKE_ZONE: europe-west2-b
   GKE_PROJECT: bewell-app
 
 build:
