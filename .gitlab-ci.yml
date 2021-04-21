@@ -53,6 +53,7 @@ deploy_to_demo:
       --set app.namespace="schemaregistry-demo-namespace"
       --set app.replicaCount=1
       --set app.container.env.assets_url="$DEMO_ASSETS_URL"
+      --set app.container.env.sentry_dns="$STAGING_SENTRY_DSN"
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.container.env.db_host="schemaregistry-demo-mysql-service"
       --set app.service.name="schemaregistry-demo-service"
@@ -98,6 +99,7 @@ deploy_to_test:
       --set app.namespace="schemaregistry-test-namespace"
       --set app.replicaCount=1
       --set app.container.env.assets_url="$TEST_ASSETS_URL"
+      --set app.container.env.sentry_dns="$TESTING_SENTRY_DSN"
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.container.env.db_host="schemaregistry-test-mysql-service"
       --set app.service.name="schemaregistry-test-service"
@@ -143,6 +145,7 @@ deploy_to_prod:
       --set app.namespace="schemaregistry-prod-namespace"
       --set app.replicaCount=1
       --set app.container.env.assets_url="$PROD_ASSETS_URL"
+      --set app.container.env.sentry_dns="$PROD_SENTRY_DSN"
       --set app.image="${DOCKER_IMAGE_TAG}"
       --set app.container.env.db_host="schemaregistry-prod-mysql-service"
       --set app.service.name="schemaregistry-prod-service"
