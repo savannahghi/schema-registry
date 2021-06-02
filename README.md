@@ -1,6 +1,6 @@
 # How It Works
 
-![image info](./dist/schema_poll.png)
+![image info](./schema_poll.png)
 
 The schema registry has one essential task, to hold the schemas for all the services. Along with each schema, it holds some configuration like URL or discovery identifier. Before a schema can be updated, it has to be validated. Beyond basic linting, we also catch things like breaking changes, and conflicts that arise when combining the schema with the rest of the graph.
 
@@ -27,6 +27,10 @@ $npm run build
  $docker-compose up --build
 
 Open http://localhost:6001
+
+## Test deployed schema registry
+
+- https://test.schemaregistry.bewell.co.ke/
 
 ## Use cases
 
