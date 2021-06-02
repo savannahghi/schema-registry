@@ -21,7 +21,7 @@ variables:
 unit_tests:
   stage: test
   tags:
-    - docker
+    - healthcloud-multi
   allow_failure: false
   script:
     - npm install --silent
