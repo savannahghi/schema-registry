@@ -1,6 +1,6 @@
 # How It Works
 
-<img width="1309" alt="Screenshot 2020-08-31 at 15 40 43" src="/dist/schema_poll.png">
+![image info](./dist/schema_poll.png)
 
 The schema registry has one essential task, to hold the schemas for all the services. Along with each schema, it holds some configuration like URL or discovery identifier. Before a schema can be updated, it has to be validated. Beyond basic linting, we also catch things like breaking changes, and conflicts that arise when combining the schema with the rest of the graph.
 
