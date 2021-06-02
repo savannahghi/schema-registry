@@ -1,5 +1,7 @@
 # How It Works
 
+![image info](./dist/schema_poll.png)
+
 The schema registry has one essential task, to hold the schemas for all the services. Along with each schema, it holds some configuration like URL or discovery identifier. Before a schema can be updated, it has to be validated. Beyond basic linting, we also catch things like breaking changes, and conflicts that arise when combining the schema with the rest of the graph.
 
 Federated schema and graphql gateway are very fragile. If you have type name collision or invalid reference in one of the services and serve it to the gateway, it won’t like it.
@@ -7,7 +9,6 @@ Federated schema and graphql gateway are very fragile. If you have type name col
 By default, the gateway’s behavior will be to poll services for their schemas so it's easy for one service to crash the traffic. The schema registry solves it by validating schema on-push and rejecting registration if it causes possible conflict.
 
 If the schema registry sees that the provided set of versions is not stable, it falls back to the last registered versions.
-
 
 ## Features
 
@@ -17,14 +18,15 @@ If the schema registry sees that the provided set of versions is not stable, it 
 - Stores & shows in UI persisted queries passed by the gateway for debugging.
 
 ## Installation
+
 Assuming you have nvm & docker installed:
 
- $nvm use
+$nvm use
  $npm install
- $npm run build
+$npm run build
  $docker-compose up --build
- 
- Open http://localhost:6001
+
+Open http://localhost:6001
 
 ## Use cases
 
@@ -41,20 +43,19 @@ Make sure to handle failure.
 
 ### Tech stack
 
-|Frontend (`/client` folder)| Backend (`/app` folder)
-|------|------|
-|react|nodejs 14|
-|apollo client|express, hapi/joi|
-|styled-components|apollo-server-express, dataloader|
-||redis 6|
-||knex|
-||mysql 8|
+| Frontend (`/client` folder) | Backend (`/app` folder)           |
+| --------------------------- | --------------------------------- |
+| react                       | nodejs 14                         |
+| apollo client               | express, hapi/joi                 |
+| styled-components           | apollo-server-express, dataloader |
+|                             | redis 6                           |
+|                             | knex                              |
+|                             | mysql 8                           |
 
 ### DB structure
 
 Migrations are done using knex
 ![](https://app.lucidchart.com/publicSegments/view/74fc86d4-671e-4644-a198-41d7ff681cae/image.png)
-
 
 ### DB migrations
 
@@ -89,44 +90,48 @@ Lists schema based on passed services & their versions.
 Used by graphql gateway to fetch schema based on current containers
 
 #### Request params (optional, raw body)
+
 ```json
 {
   "services": [
-    {"name": "service_a", "version": "ke9j34fuuei"},
-    {"name": "service_b", "version": "e302fj38fj3"},
+    { "name": "service_a", "version": "ke9j34fuuei" },
+    { "name": "service_b", "version": "e302fj38fj3" }
   ]
 }
 ```
 
 #### Response example
+
 - ✅ 200
+
 ```json
 {
-    "success": true,
-    "data": [
-        {
-            "id": 2,
-            "service_id": 3,
-            "version": "ke9j34fuuei",
-            "name": "service_a",
-            "url": "http://example.com/graphql",
-            "added_time": "2020-12-11T11:59:40.000Z",
-            "type_defs": "\n\ttype Query {\n\t\thello: String\n\t}\n",
-            "is_active": 1
-        },
-        {
-            "id": 3,
-            "service_id": 4,
-            "version": "v1",
-            "name": "service_b",
-            "url": "http://example.com/graphql",
-            "added_time": "2020-12-14T18:51:04.000Z",
-            "type_defs": "type Query {\n  world: String\n}\n",
-            "is_active": 1
-        }
-    ]
+  "success": true,
+  "data": [
+    {
+      "id": 2,
+      "service_id": 3,
+      "version": "ke9j34fuuei",
+      "name": "service_a",
+      "url": "http://example.com/graphql",
+      "added_time": "2020-12-11T11:59:40.000Z",
+      "type_defs": "\n\ttype Query {\n\t\thello: String\n\t}\n",
+      "is_active": 1
+    },
+    {
+      "id": 3,
+      "service_id": 4,
+      "version": "v1",
+      "name": "service_b",
+      "url": "http://example.com/graphql",
+      "added_time": "2020-12-14T18:51:04.000Z",
+      "type_defs": "type Query {\n  world: String\n}\n",
+      "is_active": 1
+    }
+  ]
 }
 ```
+
 - ❌ 400 "services[0].version" must be a string
 - ❌ 500 Internal error (DB is down)
 
@@ -177,10 +182,9 @@ Deletes specified schema
 
 ##### Request params
 
-| Property                  | Type    | Comments                            |
-| ------------------------- | ------- | ----------------------------------- |
-| `schemaId`                | number  | ID of sechema                       |
-
+| Property   | Type   | Comments      |
+| ---------- | ------ | ------------- |
+| `schemaId` | number | ID of sechema |
 
 #### GET /persisted_query
 
@@ -188,10 +192,9 @@ Looks up persisted query from DB & caches it in redis if its found
 
 ##### Request params (query)
 
-
-| Property                  | Type    | Comments                            |
-| ------------------------- | ------- | ----------------------------------- |
-| `key`                | string  | hash of APQ (with `apq:` prefix)                       |
+| Property | Type   | Comments                         |
+| -------- | ------ | -------------------------------- |
+| `key`    | string | hash of APQ (with `apq:` prefix) |
 
 #### POST /persisted_query
 
@@ -199,24 +202,22 @@ Adds persisted query to DB & redis cache
 
 ##### Request params (raw body)
 
+| Property | Type   | Comments                         |
+| -------- | ------ | -------------------------------- |
+| `key`    | string | hash of APQ (with `apq:` prefix) |
+| `value`  | string | Graphql query                    |
 
-| Property                  | Type    | Comments                            |
-| ------------------------- | ------- | ----------------------------------- |
-| `key`                | string  | hash of APQ (with `apq:` prefix)                       |
-| `value`                | string  | Graphql query                       |
 ## Deployment
 
 The registry has been deployed to 2 kubernetes clusters with separation of:
-    
-      1.prod
-      
-      2.dev/testing/demo (separated via namepaces)
-      
- The deployment has been set via CI/CD with the flexibility of helm values to set default configurations, just overriding the configs that differ from one environment to the other.
 
+      1.prod
+
+      2.dev/testing/demo (separated via namepaces)
+
+The deployment has been set via CI/CD with the flexibility of helm values to set default configurations, just overriding the configs that differ from one environment to the other.
 
 ## K8S 101
-
 
 ### Pods
 
@@ -271,31 +272,28 @@ Since containers are ephemeral, we need to configure a volume, via a PersistentV
 
 Create a Persistent Disk:
 
- $gcloud compute disks create <name-of-disk> --size <e.g 50GB> --zone <zone>
+\$gcloud compute disks create <name-of-disk> --size <e.g 50GB> --zone <zone>
 
 ### Kubernetes Cluster
 
 how to create a cluster on Kubernetes Engine:
 
- $gcloud container clusters create <name-of-node> --num-nodes=<number-of-nodes> --zone <zone-name> --machine-type <type-of-machine>
+\$gcloud container clusters create <name-of-node> --num-nodes=<number-of-nodes> --zone <zone-name> --machine-type <type-of-machine>
 
 This will create a one-node cluster called node-kubernetes in the europe-west2-b region with g1-small machines. It will take a few minutes to spin up.
 
-
 Connect the kubectl client to the cluster:
 
- $ gcloud container clusters get-credentials <name-of-node> --zone <zone-name>
+\$ gcloud container clusters get-credentials <name-of-node> --zone <zone-name>
 
 listing the number of nodes in a cluster
 
- $kubectl get nodes
+\$kubectl get nodes
 
 listing the number of pods in a cluster
 
- $kubectl get pods
+\$kubectl get pods
 
 viewing logs in a pod
 
- $kubectl logs -f <pode-name>
-
-
+\$kubectl logs -f <pode-name>
