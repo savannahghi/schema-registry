@@ -20,12 +20,11 @@ variables:
 
 unit_tests:
   stage: test
-  tags:
-    - docker
+  image: node:9-alpine
   allow_failure: false
   script:
-    - sudo npm install --silent
-    - sudo npm run test
+    - npm install --silent
+    - npm run test
 
 
 build:
