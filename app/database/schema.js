@@ -179,7 +179,7 @@ const schemaModel = {
 
 		if (missingServices.length) {
 			logger.warn(
-				new Error('Unable to find schema for requested services'),
+				new Error(`Unable to find schema for requested services "${missingServices}" `),
 				{
 					missingServices,
 				}
