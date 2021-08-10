@@ -22,6 +22,7 @@ env:
  REDIS_NAME: ${{ secrets.REDIS_NAME }}
  CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
  CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+ DOCKER_IMAGE_TAG: eu.gcr.io/$PROJECT_ID/$GCR_NAME:$GITHUB_SHA
 
 jobs:
   build_and_publish_image:
@@ -77,18 +78,26 @@ jobs:
             --namespace="${NAMESPACE}" \
             --set app.release_name="${RELEASE_NAME}" \
             --set app.name="${APP}" \
+            --set app.project_id="${PROJECT_ID}" \
             --set app.namespace="${NAMESPACE}" \
+            --set app.certificate.namespace="cert-manager" \
+            --set app.certificate.acme.email="calvineotieno010@gmail.com" \
+            --set app.certificate.issuer.name="letsencrypt-prod" \
+            --set app.certificate.acme.server="https://acme-v02.api.letsencrypt.org/directory" \
             --set app.replicaCount="${REPLICA_COUNT}" \
             --set app.container.env.assets_url="${ASSETS_URL}" \
             --set app.container.env.sentry_dns="${SENTRY_DSN}" \
-            --set app.image="${DOCKER_IMAGE_TAG}" \
+            --set app.image=eu.gcr.io/$PROJECT_ID/$GCR_NAME:$GITHUB_SHA \
             --set app.container.env.db_host="${DB_HOST}" \
             --set app.service.name="${SERVICE_NAME}" \
             --set app.service.namespace="${NAMESPACE}" \
             --set ingress.name="${INGRESS_NAME}" \
             --set ingress.namespace="${NAMESPACE}" \
             --set ingress.host="${INGRESS_HOST}" \
+            --set ingress.annotations.acme.http_edit_in_place="true" \
             --set ingress.annotations.class="kong" \
+            --set ingress.spec.rules.pathType="Prefix" \
+            --set ingress.annotations.tls.acme="true" \
             --set ingress.allow_http="false" \
             --set app.certificate.name="${CERTIFICATE_NAME}" \
             --set mysql.name="${MYSQL_NAME}" \

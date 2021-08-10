@@ -57,3 +57,6 @@ redis:
         pvc:
             defaultMode: 0755
             storage: 1Gi
+
+secrets:
+    name: "dns01-solve-credentials"
