@@ -1,25 +1,39 @@
 {{- $serviceName := .Values.app.service.name -}}
 {{- $servicePort := .Values.app.service.port -}}
 {{- $paths := .Values.ingress.paths -}}
-apiVersion: networking.k8s.io/v1beta1
+{{- $pathType := .Values.ingress.spec.rules.pathType -}}
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.ingress.name }}
-  namespace: {{ .Values.ingress.namespace }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
-        kubernetes.io/ingress.global-static-ip-name: {{ .Values.app.service.static_ip_name }}
-        networking.gke.io/managed-certificates: {{ .Values.app.certificate.name }}
-        kubernetes.io/ingress.class: {{ .Values.ingress.annotations.class | quote }}
-        kubernetes.io/ingress.allow-http: {{ .Values.ingress.allow_http | quote }}
+    meta.helm.sh/release-name: {{ .Values.app.release_name }}
+    meta.helm.sh/release-namespace: {{ .Values.app.namespace }}
+    kubernetes.io/ingress.class: {{ .Values.ingress.annotations.class }}
+    kubernetes.io/tls-acme: {{ .Values.ingress.annotations.tls.acme | quote }}
+    cert-manager.io/issuer: {{ .Values.app.certificate.issuer.name }}
+    acme.cert-manager.io/http01-edit-in-place: {{ .Values.ingress.annotations.acme.http_edit_in_place | quote }}
+    konghq.com/protocols: "https"
+    konghq.com/https-redirect-status-code: "301"
+
 spec:
+  tls:
+  - secretName: {{ .Values.app.certificate.name }}
+    hosts:
+      - {{ .Values.ingress.host }}
   rules:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
         {{- range $p := $paths }}
           - path: {{ $p }}
+            pathType: {{ $pathType }}
             backend:
-              serviceName: {{ $serviceName }}
-              servicePort: {{ $servicePort }}
+              service:
+                 name: {{ $serviceName }}
+                 port: 
+                   number: {{ $servicePort }}
         {{- end }}
-

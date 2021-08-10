@@ -1,13 +1,20 @@
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
+apiVersion: cert-manager.io/v1
+kind: Issuer
 metadata:
-  name: {{ .Values.app.certificate.name }}
+  name: {{ .Values.app.certificate.issuer.name }}
   namespace: {{ .Values.app.namespace }}
   labels:
     app.kubernetes.io/managed-by: "Helm"
-  annotations:
-    meta.helm.sh/release-name: {{ .Values.app.release_name }}
-    meta.helm.sh/release-namespace: {{ .Values.app.namespace }}
 spec:
-  domains:
-    - {{ .Values.ingress.host }}
+  acme:
+    email: {{ .Values.app.certificate.acme.email }}
+    privateKeySecretRef:
+      name: {{ .Values.app.certificate.issuer.name }}
+    server: {{ .Values.app.certificate.acme.server }}
+    solvers:
+      - dns01:
+          cloudDNS:
+            project: {{ .Values.app.project_id }}
+            serviceAccountSecretRef:
+              name: {{ .Values.secrets.name }}
+              key: credentials.json
