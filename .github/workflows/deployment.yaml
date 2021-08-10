@@ -61,15 +61,19 @@ jobs:
         run: |
           curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
       
-      - name: Deploy Release on cluster
+      - name: Get cluster auth credentials
         run: |
           echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud.json
           gcloud auth activate-service-account --key-file=${HOME}/gcloud.json
           gcloud auth configure-docker
           gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
-
+      
+      - name: Deploy Release on cluster
+        run: |
           # install helm/upgrade helm chart
-          helm upgrade --install  $RELEASE_NAME ./deployment/k8s-chart \
+          helm upgrade $RELEASE_NAME ./deployment/k8s-chart \
+            --install \
+            --debug \
             --namespace="${NAMESPACE}" \
             --set app.release_name="${RELEASE_NAME}" \
             --set app.name="${APP}" \
@@ -81,7 +85,7 @@ jobs:
             --set app.container.env.db_host="${DB_HOST}" \
             --set app.service.name="${SERVICE_NAME}" \
             --set app.service.namespace="${NAMESPACE}" \
-            --set ingress.name="${secrets.REDIS_NAME}" \
+            --set ingress.name="${INGRESS_NAME}" \
             --set ingress.namespace="${NAMESPACE}" \
             --set ingress.host="${INGRESS_HOST}" \
             --set ingress.annotations.class="kong" \
@@ -94,8 +98,6 @@ jobs:
             --set mysql.service.namespace="${NAMESPACE}" \
             --set mysql.config.namespace="${NAMESPACE}" \
             --set mysql.volume.pvc.namespace="${NAMESPACE}" \
-            --set redis.name="${REDIS_NAME" \
+            --set redis.name="${REDIS_NAME}" \
             --set redis.namespace="${NAMESPACE}" \
             --wait
-
-   
