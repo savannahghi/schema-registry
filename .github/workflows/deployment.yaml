@@ -1,0 +1,101 @@
+name: Deployment
+
+on: [push]
+env:
+ GCR_NAME: ${{ secrets.GCR_NAME }}
+ GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+ PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+ NAMESPACE: ${{ secrets.NAMESPACE }}
+ RELEASE_NAME: ${{ secrets.RELEASE_NAME }}
+ APP: ${{ secrets.APP }}
+ REPLICA_COUNT: ${{ secrets.REPLICA_COUNT }}
+ ASSETS_URL: ${{ secrets.ASSETS_URL }}
+ SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+ DB_HOST: ${{ secrets.DB_HOST }}
+ SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+ INGRESS_NAME: ${{ secrets.INGRESS_NAME }}
+ INGRESS_HOST: ${{ secrets.INGRESS_HOST }}
+ CERTIFICATE_NAME: ${{ secrets.CERTIFICATE_NAME }}
+ MYSQL_NAME: ${{ secrets.MYSQL_NAME }}
+ MYSQL_SERVICE: ${{ secrets.MYSQL_SERVICE }}
+ MYSQL_VOLUME: ${{ secrets.MYSQL_VOLUME }}
+ REDIS_NAME: ${{ secrets.REDIS_NAME }}
+ CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+ CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+
+jobs:
+  build_and_publish_image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # Setup gcloud CLI
+      - uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCLOUD_SERVICE_KEY }}
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
+          export_default_credentials: true
+
+      # Build docker image
+      - name: Build
+        run: |-
+          docker build -t eu.gcr.io/$PROJECT_ID/$GCR_NAME:$GITHUB_SHA .
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      - run: |
+          gcloud auth configure-docker -q
+
+      # Push image to Google Container Registry
+      - name: Push
+        run: |-
+          docker push eu.gcr.io/$PROJECT_ID/$GCR_NAME:$GITHUB_SHA
+
+  deployment:
+    name: Deploy Registry to cluster
+    runs-on: ubuntu-latest
+    needs: [build_and_publish_image]
+    steps:
+      - name: Checkout working branches
+        uses: actions/checkout@v2
+
+      - name: Install helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+      
+      - name: Deploy Release on cluster
+        run: |
+          echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud.json
+          gcloud auth configure-docker
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
+
+          # install helm/upgrade helm chart
+          helm upgrade --install  $RELEASE_NAME ./deployment/k8s-chart \
+            --namespace="${NAMESPACE}" \
+            --set app.release_name="${RELEASE_NAME}" \
+            --set app.name="${APP}" \
+            --set app.namespace="${NAMESPACE}" \
+            --set app.replicaCount="${REPLICA_COUNT}" \
+            --set app.container.env.assets_url="${ASSETS_URL}" \
+            --set app.container.env.sentry_dns="${SENTRY_DSN}" \
+            --set app.image="${DOCKER_IMAGE_TAG}" \
+            --set app.container.env.db_host="${DB_HOST}" \
+            --set app.service.name="${SERVICE_NAME}" \
+            --set app.service.namespace="${NAMESPACE}" \
+            --set ingress.name="${secrets.REDIS_NAME}" \
+            --set ingress.namespace="${NAMESPACE}" \
+            --set ingress.host="${INGRESS_HOST}" \
+            --set ingress.annotations.class="kong" \
+            --set ingress.allow_http="false" \
+            --set app.certificate.name="${CERTIFICATE_NAME}" \
+            --set mysql.name="${MYSQL_NAME}" \
+            --set mysql.service.name="${DB_HOST}" \
+            --set mysql.volume.pvc.name="${MYSQL_VOLUME}" \
+            --set mysql.namespace="${NAMESPACE}" \
+            --set mysql.service.namespace="${NAMESPACE}" \
+            --set mysql.config.namespace="${NAMESPACE}" \
+            --set mysql.volume.pvc.namespace="${NAMESPACE}" \
+            --set redis.name="${REDIS_NAME" \
+            --set redis.namespace="${NAMESPACE}" \
+            --wait
+
+   
