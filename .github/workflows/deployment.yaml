@@ -69,7 +69,7 @@ jobs:
           gcloud auth configure-docker
           gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
       
-      - name: Deploy Release on cluster
+      - name: Deploy Test Release on cluster
         run: |
           # install helm/upgrade helm chart
           helm upgrade $RELEASE_NAME ./deployment/k8s-chart \
@@ -109,4 +109,91 @@ jobs:
             --set mysql.volume.pvc.namespace="${NAMESPACE}" \
             --set redis.name="${REDIS_NAME}" \
             --set redis.namespace="${NAMESPACE}" \
+            --wait
+  
+  prod_deployment:
+    name: Deploy Prod Registry to cluster
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      GCR_NAME: ${{ secrets.GCR_NAME }}
+      GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+      PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+      CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+      CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+    steps:
+      - name: Checkout working branches
+        uses: actions/checkout@v2
+
+      - uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCLOUD_SERVICE_KEY }}
+          project_id: ${{ secrets.PROJECT_ID }}
+          export_default_credentials: true
+
+      # Build docker image
+      - name: Build
+        run: |-
+          docker build -t eu.gcr.io/${{ secrets.PROJECT_ID }}/${{ secrets.GCR_NAME }}:$GITHUB_SHA .
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      - run: |
+          gcloud auth configure-docker -q
+
+      # Push image to Google Container Registry
+      - name: Push
+        run: |-
+          docker push eu.gcr.io/${{ secrets.PROJECT_ID }}/${{ secrets.GCR_NAME }}:$GITHUB_SHA
+
+      - name: Install helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+      
+      - name: Get cluster auth credentials
+        run: |
+          echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud.json
+          gcloud auth configure-docker
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $PROJECT_ID
+
+      - name: Deploy  Prod Release on cluster
+        run: |
+          # install helm/upgrade helm chart
+          helm upgrade ${{ secrets.RELEASE_NAME }} ./deployment/k8s-chart \
+            --install \
+            --debug \
+            --namespace="${{ secrets.NAMESPACE }}" \
+            --set app.release_name="${{ secrets.RELEASE_NAME }}" \
+            --set app.name="${{ secrets.APP }}" \
+            --set app.project_id="${{ secrets.PROJECT_ID }}" \
+            --set app.namespace="${{ secrets.NAMESPACE }}" \
+            --set app.certificate.namespace="cert-manager" \
+            --set app.certificate.acme.email="calvineotieno010@gmail.com" \
+            --set app.certificate.issuer.name="letsencrypt-prod" \
+            --set app.certificate.acme.server="https://acme-v02.api.letsencrypt.org/directory" \
+            --set app.replicaCount="${{ secrets.REPLICA_COUNT }}" \
+            --set app.container.env.assets_url="${{ secrets.ASSETS_URL }}" \
+            --set app.container.env.sentry_dns="${{ secrets.SENTRY_DSN }}" \
+            --set app.image=eu.gcr.io/${{ secrets.PROJECT_ID }}/${{ secrets.GCR_NAME }}:$GITHUB_SHA \
+            --set app.container.env.db_host="${{ secrets.DB_HOST }}" \
+            --set app.service.name="${{ secrets.SERVICE_NAME }}" \
+            --set app.service.namespace="${{ secrets.NAMESPACE }}" \
+            --set ingress.name="${{ secrets.INGRESS_NAME }}" \
+            --set ingress.namespace="${{ secrets.NAMESPACE }}" \
+            --set ingress.host="${{ secrets.INGRESS_HOST }}" \
+            --set ingress.annotations.acme.http_edit_in_place="true" \
+            --set ingress.annotations.class="kong" \
+            --set ingress.spec.rules.pathType="Prefix" \
+            --set ingress.annotations.tls.acme="true" \
+            --set ingress.allow_http="false" \
+            --set app.certificate.name="${{ secrets.CERTIFICATE_NAME }}" \
+            --set mysql.name="${{ secrets.MYSQL_NAME }}" \
+            --set mysql.service.name="${{ secrets.DB_HOST }}" \
+            --set mysql.volume.pvc.name="${{ secrets.MYSQL_VOLUME }}" \
+            --set mysql.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.service.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.config.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.volume.pvc.namespace="${{ secrets.NAMESPACE }}" \
+            --set redis.name="${{ secrets.REDIS_NAME }}" \
+            --set redis.namespace="${{ secrets.NAMESPACE }}" \
             --wait
