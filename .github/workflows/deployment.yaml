@@ -173,3 +173,66 @@ jobs:
             --set redis.name="${{ secrets.REDIS_NAME }}" \
             --set redis.namespace="${{ secrets.NAMESPACE }}" \
             --wait
+
+  deploy_to_demo:
+    name: Deploy demo Registry to cluster
+    runs-on: ubuntu-latest
+    needs: [build_and_publish_image]
+    environment:
+      name: demo
+    steps:
+      - name: Checkout working branches
+        uses: actions/checkout@v3
+
+      - name: Install helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+      
+      - name: Get cluster auth credentials
+        run: |
+          echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud.json
+          gcloud auth configure-docker
+          gcloud container clusters get-credentials ${{secrets.CLUSTER_NAME}} --zone ${{secrets.CLUSTER_ZONE}} --project ${{secrets.PROJECT_ID}}
+      
+      - name: Deploy Release on cluster
+        run: |
+          # install helm/upgrade helm chart
+          helm upgrade ${{ secrets.RELEASE_NAME }} ./deployment/k8s-chart \
+            --install \
+            --debug \
+            --namespace="${{ secrets.NAMESPACE }}" \
+            --set app.release_name="${{ secrets.RELEASE_NAME }}" \
+            --set app.name="${{ secrets.APP }}" \
+            --set app.project_id="${{ secrets.PROJECT_ID }}" \
+            --set app.namespace="${{ secrets.NAMESPACE }}" \
+            --set app.certificate.namespace="cert-manager" \
+            --set app.certificate.acme.email="nairouasalaton@gmail.com" \
+            --set app.certificate.issuer.name="letsencrypt-prod" \
+            --set app.certificate.acme.server="https://acme-v02.api.letsencrypt.org/directory" \
+            --set app.replicaCount="${{ secrets.REPLICA_COUNT }}" \
+            --set app.container.env.assets_url="${{ secrets.ASSETS_URL }}" \
+            --set app.container.env.sentry_dns="${{ secrets.SENTRY_DSN }}" \
+            --set app.image=eu.gcr.io/$PROJECT_ID/$GCR_NAME:$GITHUB_SHA \
+            --set app.container.env.db_host="${{ secrets.DB_HOST }}" \
+            --set app.service.name="${{ secrets.SERVICE_NAME }}" \
+            --set app.service.namespace="${{ secrets.NAMESPACE }}" \
+            --set ingress.name="${{ secrets.INGRESS_NAME }}" \
+            --set ingress.namespace="${{ secrets.NAMESPACE }}" \
+            --set ingress.host="${{ secrets.INGRESS_HOST }}" \
+            --set ingress.annotations.acme.http_edit_in_place="true" \
+            --set ingress.annotations.class="kong" \
+            --set ingress.spec.rules.pathType="Prefix" \
+            --set ingress.annotations.tls.acme="true" \
+            --set ingress.allow_http="false" \
+            --set app.certificate.name="${{ secrets.CERTIFICATE_NAME }}" \
+            --set mysql.name="${{ secrets.MYSQL_NAME }}" \
+            --set mysql.service.name="${{ secrets.DB_HOST }}" \
+            --set mysql.volume.pvc.name="${{ secrets.MYSQL_VOLUME }}" \
+            --set mysql.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.service.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.config.namespace="${{ secrets.NAMESPACE }}" \
+            --set mysql.volume.pvc.namespace="${{ secrets.NAMESPACE }}" \
+            --set redis.name="${{ secrets.REDIS_NAME }}" \
+            --set redis.namespace="${{ secrets.NAMESPACE }}" \
+            --wait
